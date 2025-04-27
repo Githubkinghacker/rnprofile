@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Space Quiz</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Arial Rounded MT Bold', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        #space-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        .quiz-container {
+            background: rgba(0, 0, 30, 0.95);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 191, 255, 0.3);
+            width: 85%;
+            max-width: 700px;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(0, 191, 255, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .question {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-btn {
+            padding: 1.2rem;
+            background: rgba(0, 0, 50, 0.7);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            border-radius: 15px;
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-btn:hover {
+            background: rgba(0, 191, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .score {
+            text-align: center;
+            font-size: 1.4rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #55efc4);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="space-canvas"></canvas>
+    <div class="quiz-container">
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="progress">
+            <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+    </div>
+
+    <script>
+        // Enhanced Realistic Starfield Animation
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        const numberOfStars = 1000;
+        const shootingStarInterval = 1500;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Star {
+            constructor() {
+                this.reset();
+                this.hue = Math.random() * 60 + 200; // Cool blue/white stars
+                this.alpha = Math.random() * 0.8 + 0.2;
+                this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.z = Math.random() * 3000;
+                this.radius = Math.random() * 1.5;
+                this.velocity = Math.random() * 0.05 + 0.01;
+                this.twinkleOffset = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.z -= this.velocity * (1 + this.radius/3);
+                this.alpha = 0.5 + Math.sin(Date.now() * this.twinkleSpeed + this.twinkleOffset) * 0.3;
+                if (this.z <= 0) this.reset();
+            }
+
+            draw() {
+                const x = (this.x - canvas.width/2) * (3000 / this.z) + canvas.width/2;
+                const y = (this.y - canvas.height/2) * (3000 / this.z) + canvas.height/2;
+                const radius = this.radius * (3000 / this.z);
+                
+                // Draw star glow
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
+                gradient.addColorStop(0, `hsla(${this.hue}, 100%, 90%, ${this.alpha}`);
+                gradient.addColorStop(1, `hsla(${this.hue}, 100%, 50%, 0)`);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // Draw star core
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 100%, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < numberOfStars; i++) {
+            stars.push(new Star());
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function createShootingStar() {
+            const hue = Math.random() * 60 + 200; // Blue/white shooting stars
+            const shootingStar = {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                length: 250 + Math.random() * 150,
+                angle: Math.random() * Math.PI * 2,
+                speed: 12 + Math.random() * 10,
+                life: 1,
+                hue: hue
+            };
+
+            const drawShootingStar = () => {
+                shootingStar.x += Math.cos(shootingStar.angle) * shootingStar.speed;
+                shootingStar.y += Math.sin(shootingStar.angle) * shootingStar.speed;
+                shootingStar.life -= 0.008;
+
+                // Draw tail
+                const gradient = ctx.createLinearGradient(
+                    shootingStar.x, 
+                    shootingStar.y,
+                    shootingStar.x - Math.cos(shootingStar.angle) * shootingStar.length,
+                    shootingStar.y - Math.sin(shootingStar.angle) * shootingStar.length
+                );
+                gradient.addColorStop(0, `hsla(${shootingStar.hue}, 100%, 90%, ${shootingStar.life})`);
+                gradient.addColorStop(1, `hsla(${shootingStar.hue}, 100%, 50%, 0)`);
+                
+                ctx.beginPath();
+                ctx.moveTo(shootingStar.x, shootingStar.y);
+                ctx.lineTo(
+                    shootingStar.x - Math.cos(shootingStar.angle) * shootingStar.length,
+                    shootingStar.y - Math.sin(shootingStar.angle) * shootingStar.length
+                );
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 5 * shootingStar.life;
+                ctx.stroke();
+
+                // Draw head
+                ctx.beginPath();
+                ctx.arc(shootingStar.x, shootingStar.y, 3 * shootingStar.life, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${shootingStar.hue}, 100%, 100%, ${shootingStar.life})`;
+                ctx.fill();
+
+                if (shootingStar.life > 0) {
+                    requestAnimationFrame(drawShootingStar);
+                }
+            };
+
+            drawShootingStar();
+        }
+
+        setInterval(() => {
+            if(Math.random() > 0.5) createShootingStar();
+        }, shootingStarInterval);
+
+        // Cybersecurity Quiz Questions
+        const questions = [
+            {
+                question: "What is the most common type of cyber attack?",
+                options: ["DDoS", "Phishing", "SQL Injection", "Zero-day exploit"],
+                correct: 1,
+                explanation: "Phishing attacks account for over 80% of reported security incidents, tricking users into revealing sensitive information."
+            },
+            {
+                question: "What does '2FA' stand for in security?",
+                options: ["Two-Factor Authentication", "Two-File Archive", "Two-Form Access", "Two-Function Algorithm"],
+                correct: 0,
+                explanation: "Two-Factor Authentication adds an extra layer of security beyond just a password."
+            },
+            {
+                question: "Which of these is NOT a type of malware?",
+                options: ["Ransomware", "Spyware", "Adware", "Fireware"],
+                correct: 3,
+                explanation: "Fireware is not a type of malware, while the others are common malware types."
+            },
+            {
+                question: "What is the purpose of a VPN?",
+                options: ["Increase internet speed", "Encrypt internet connection", "Block all ads", "Scan for viruses"],
+                correct: 1,
+                explanation: "VPNs encrypt your internet traffic to protect your privacy and secure your connection."
+            },
+            {
+                question: "What should you do if you suspect a phishing email?",
+                options: ["Reply to verify", "Click links to check", "Forward to IT security", "Delete immediately"],
+                correct: 2,
+                explanation: "Forward suspicious emails to your IT security team for investigation before deleting."
+            },
+            {
+                question: "What is a 'zero-day' vulnerability?",
+                options: ["A bug with no known fix", "A new security feature", "A type of encryption", "A secure login method"],
+                correct: 0,
+                explanation: "Zero-day vulnerabilities are unknown to the vendor and have no available patch when discovered."
+            },
+            {
+                question: "Which password is most secure?",
+                options: ["Password123", "P@ssw0rd!", "CorrectHorseBatteryStaple", "Admin1234"],
+                correct: 2,
+                explanation: "Long passphrases are more secure than short complex passwords that are hard to remember."
+            },
+            {
+                question: "What does HTTPS protect against?",
+                options: ["Malware installation", "Eavesdropping", "Phishing attempts", "All of the above"],
+                correct: 1,
+                explanation: "HTTPS encrypts communication to prevent eavesdropping, but doesn't protect against malware or phishing."
+            },
+            {
+                question: "What is social engineering?",
+                options: ["Software engineering for social media", "Manipulating people to gain access", "A type of encryption", "AI for social networks"],
+                correct: 1,
+                explanation: "Social engineering tricks people into breaking security procedures rather than technical hacking."
+            },
+            {
+                question: "Why should you regularly update software?",
+                options: ["To get new features", "To fix security vulnerabilities", "To improve performance", "All of the above"],
+                correct: 3,
+                explanation: "Updates provide security patches, performance improvements, and sometimes new features."
+            }
+        ];
+
+        const questionElement = document.getElementById("question");
+        const optionsElement = document.getElementById("options");
+        const scoreElement = document.getElementById("score");
+        const progressBar = document.getElementById("progress-bar");
+
+        let currentQuestion = 0;
+        let score = 0;
+
+        function showQuestion() {
+            updateProgress();
+            const question = questions[currentQuestion];
+            questionElement.textContent = question.question;
+            optionsElement.innerHTML = "";
+            
+            question.options.forEach((option, index) => {
+                const button = document.createElement("button");
+                button.className = "option-btn";
+                button.textContent = option;
+                button.addEventListener("click", () => selectAnswer(index));
+                optionsElement.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedIndex) {
+            const question = questions[currentQuestion];
+            const options = document.querySelectorAll(".option-btn");
+            
+            options.forEach(option => option.disabled = true);
+            
+            if (selectedIndex === question.correct) {
+                score++;
+                scoreElement.textContent = score;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Correct!',
+                    html: `<p>${question.explanation}</p>`,
+                    confirmButtonColor: '#55efc4',
+                    background: 'rgba(0, 0, 30, 0.9)',
+                    iconColor: '#00b894',
+                    timer: 5000,
+                    timerProgressBar: true
+                }).then(() => nextQuestion());
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Wrong!',
+                    html: `<p>Correct: <strong>${question.options[question.correct]}</strong></p>
+                           <p>${question.explanation}</p>`,
+                    confirmButtonColor: '#ff7675',
+                    background: 'rgba(0, 0, 30, 0.9)',
+                    iconColor: '#d63031',
+                    timer: 5000,
+                    timerProgressBar: true
+                }).then(() => nextQuestion());
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                showQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function endQuiz() {
+            Swal.fire({
+                title: 'Quiz Completed!',
+                html: `Final Score: <strong>${score}/${questions.length}</strong>`,
+                icon: 'info',
+                confirmButtonColor: '#55efc4',
+                background: 'rgba(0, 0, 30, 0.9)',
+                iconColor: '#00b894',
+                timer: 5000,
+                timerProgressBar: true
+            }).then(() => {
+                currentQuestion = 0;
+                score = 0;
+                scoreElement.textContent = score;
+                progressBar.style.width = '0%';
+                showQuestion();
+            });
+        }
+
+        // Start quiz
+        showQuestion();
+    </script>
+</body>
+</html>

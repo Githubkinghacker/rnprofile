@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cosmic Portal</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+
+      .welcome-text {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #00ffff;
+        font-family: "Arial", sans-serif;
+        font-size: 3em;
+        text-align: center;
+        text-shadow: 0 0 10px #00ffff;
+        animation: glow 2s ease-in-out infinite;
+        z-index: 99;
+        pointer-events: none;
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+        }
+        50% {
+          text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffff;
+        }
+      }
+
+      #portalButton {
+        position: fixed;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #00ffff;
+        border: 1px solid #ffffff;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        transition: all 0.3s;
+        z-index: 100;
+        transform: translate(-50%, -50%);
+        opacity: 0.9;
+      }
+
+      #helpButton {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid #ffffff;
+        cursor: pointer;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        transition: all 0.3s;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        font-size: 20px;
+        animation: helpGlow 2s infinite;
+      }
+
+      @keyframes helpGlow {
+        0%,
+        100% {
+          box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
+      }
+
+      #helpButton:hover {
+        transform: scale(1.2);
+        background: rgba(255, 255, 255, 1);
+      }
+
+      #portalButton:hover {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="welcome-text">Welcome to the Cosmic Portal</h1>
+    <button id="portalButton" onclick="handleButtonClick()"></button>
+    <button id="helpButton" onclick="showHelp()">?</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+      // Scene setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        3000
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Enhanced Realistic Star Field
+      function createStarField() {
+        const starCount = 10000;
+        const positions = new Float32Array(starCount * 3);
+        const colors = new Float32Array(starCount * 3);
+        const sizes = new Float32Array(starCount);
+        const opacities = new Float32Array(starCount);
+
+        const colorPalette = [
+          new THREE.Color(0x9db4ff), // O-type
+          new THREE.Color(0xaabfff), // B-type
+          new THREE.Color(0xcad7ff), // A-type
+          new THREE.Color(0xf8f7ff), // F-type
+          new THREE.Color(0xfff4ea), // G-type
+          new THREE.Color(0xffd8a7), // K-type
+          new THREE.Color(0xffb347), // M-type
+          new THREE.Color(0xff6b6b), // Carbon stars
+        ];
+
+        for (let i = 0; i < starCount; i++) {
+          const i3 = i * 3;
+          const radius = 2500;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(-1 + (2 * i) / starCount);
+
+          positions[i3] = radius * Math.cos(theta) * Math.sin(phi);
+          positions[i3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+          positions[i3 + 2] = radius * Math.cos(phi);
+
+          const colorChoice = Math.random();
+          let color;
+          if (colorChoice < 0.00003) color = colorPalette[0];
+          else if (colorChoice < 0.0013) color = colorPalette[1];
+          else if (colorChoice < 0.0063) color = colorPalette[2];
+          else if (colorChoice < 0.033) color = colorPalette[3];
+          else if (colorChoice < 0.12) color = colorPalette[4];
+          else if (colorChoice < 0.25) color = colorPalette[5];
+          else color = colorPalette[6];
+
+          colors[i3] = color.r;
+          colors[i3 + 1] = color.g;
+          colors[i3 + 2] = color.b;
+
+          if (color === colorPalette[0]) {
+            sizes[i] = Math.random() * 3 + 2;
+            opacities[i] = 1;
+          } else if (color === colorPalette[1]) {
+            sizes[i] = Math.random() * 2 + 1.5;
+            opacities[i] = 0.9;
+          } else {
+            sizes[i] = Math.random() * 1.5 + 0.5;
+            opacities[i] = 0.5 + Math.random() * 0.4;
+          }
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3)
+        );
+        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+        geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+        geometry.setAttribute(
+          "opacity",
+          new THREE.BufferAttribute(opacities, 1)
+        );
+
+        const material = new THREE.PointsMaterial({
+          size: 0.5,
+          vertexColors: true,
+          transparent: true,
+          sizeAttenuation: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+        });
+
+        return new THREE.Points(geometry, material);
+      }
+      scene.add(createStarField());
+
+      // Shooting Stars System
+      const shootingStars = [];
+      function createShootingStar() {
+        const points = [];
+        const length = 30 + Math.floor(Math.random() * 30);
+        const hue = Math.random();
+        const color = new THREE.Color().setHSL(hue, 0.9, 0.7);
+
+        for (let i = 0; i < length; i++) {
+          const ratio = i / length;
+          const curveFactor = 0.5 * Math.sin(ratio * Math.PI);
+          points.push(new THREE.Vector3(ratio * 1000, curveFactor * 100, 0));
+        }
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+          color: color.getHex(),
+          transparent: true,
+          opacity: 0.8,
+          linewidth: 1.5,
+        });
+
+        const line = new THREE.Line(geometry, material);
+
+        line.position.set(
+          (Math.random() - 0.5) * 2000,
+          (Math.random() - 0.5) * 2000,
+          (Math.random() - 0.5) * 2000
+        );
+
+        line.rotation.set(
+          Math.random() * Math.PI * 2,
+          Math.random() * Math.PI * 2,
+          Math.random() * Math.PI * 2
+        );
+
+        line.speed = 0.5 + Math.random() * 2;
+        line.direction = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5
+        ).normalize();
+
+        line.life = 1.5 + Math.random();
+        return line;
+      }
+
+      function updateShootingStars(delta) {
+        if (Math.random() < 0.05) {
+          const star = createShootingStar();
+          scene.add(star);
+          shootingStars.push(star);
+        }
+
+        for (let i = shootingStars.length - 1; i >= 0; i--) {
+          const star = shootingStars[i];
+          star.life -= delta;
+
+          if (star.life <= 0) {
+            scene.remove(star);
+            shootingStars.splice(i, 1);
+          } else {
+            star.position.add(
+              star.direction.clone().multiplyScalar(delta * star.speed * 100)
+            );
+            star.material.opacity = star.life / 2;
+            star.rotation.x += delta * 0.5;
+            star.rotation.y += delta * 0.3;
+          }
+        }
+      }
+
+      // Twinkling Effect
+      function updateStarTwinkle() {
+        scene.traverse((obj) => {
+          if (obj instanceof THREE.Points) {
+            const opacityAttr = obj.geometry.attributes.opacity;
+            if (opacityAttr) {
+              const time = Date.now() * 0.001;
+              for (let i = 0; i < opacityAttr.count; i++) {
+                if (obj.geometry.attributes.size.array[i] < 1.5) {
+                  opacityAttr.array[i] = 0.5 + Math.sin(time * 5 + i) * 0.3;
+                }
+              }
+              opacityAttr.needsUpdate = true;
+            }
+          }
+        });
+      }
+
+      // Portal setup
+      const portalPosition = new THREE.Vector3(0, 0, 0);
+      const createPortalLayer = (radius, speed, color1, color2) => {
+        const geometry = new THREE.RingGeometry(radius - 2, radius, 128);
+        const material = new THREE.ShaderMaterial({
+          vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+          fragmentShader: `
+                    varying vec2 vUv;
+                    uniform float time;
+                    uniform vec3 color1;
+                    uniform vec3 color2;
+                    
+                    void main() {
+                        vec2 center = vec2(0.5);
+                        float angle = atan(vUv.x - center.x, vUv.y - center.y);
+                        float dist = distance(vUv, center);
+                        
+                        float pattern = sin(angle * 12.0 + time * speed * 15.0) * 0.5 + 0.5;
+                        pattern *= smoothstep(0.4, 0.45, dist);
+                        
+                        vec3 color = mix(color1, color2, pattern);
+                        float alpha = smoothstep(0.49, 0.5, dist) * (1.0 - smoothstep(0.5, 0.51, dist));
+                        
+                        gl_FragColor = vec4(color, alpha * 0.8);
+                }
+                `,
+          uniforms: {
+            time: { value: 0 },
+            color1: { value: new THREE.Color(color1) },
+            color2: { value: new THREE.Color(color2) },
+            speed: { value: speed },
+          },
+          transparent: true,
+          side: THREE.DoubleSide,
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.rotation.x = Math.PI / 2;
+        return mesh;
+      };
+
+      const portalLayers = [
+        createPortalLayer(8.0, 1.2, 0x00ffff, 0x0000ff),
+        createPortalLayer(6.5, -1.0, 0xff00ff, 0x0000ff),
+        createPortalLayer(5.0, 1.5, 0x00ff00, 0x00ffff),
+        createPortalLayer(3.5, -2.0, 0xffffff, 0xff0000),
+      ];
+
+      portalLayers.forEach((layer) => {
+        scene.add(layer);
+        scene.add(layer.clone().rotateX(-Math.PI / 2));
+      });
+
+      // Particles system
+      const particles = new THREE.Points(
+        new THREE.BufferGeometry().setAttribute(
+          "position",
+          new THREE.BufferAttribute(
+            new Float32Array(8000 * 3).map(() => (Math.random() - 0.5) * 20),
+            3
+          )
+        ),
+        new THREE.PointsMaterial({
+          size: 0.2,
+          color: 0x00ffff,
+          transparent: true,
+          opacity: 0.7,
+          blending: THREE.AdditiveBlending,
+        })
+      );
+      scene.add(particles);
+
+      // Original orbiting planets
+      const planets = [];
+      const createPlanet = (size, color, distance, speed) => {
+        const planet = new THREE.Mesh(
+          new THREE.SphereGeometry(size, 32, 32),
+          new THREE.MeshPhongMaterial({ color, shininess: 100 })
+        );
+
+        if (Math.random() > 0.5) {
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(size * 1.3, size * 1.8, 64),
+            new THREE.MeshPhongMaterial({
+              color: 0xaaaaaa,
+              side: THREE.DoubleSide,
+            })
+          );
+          ring.rotation.x = (Math.PI / 2) * (Math.random() - 0.5);
+          planet.add(ring);
+        }
+
+        planet.angle = Math.random() * Math.PI * 2;
+        planet.distance = distance;
+        planet.speed = speed;
+        return planet;
+      };
+
+      [
+        [2.0, 0xff4444, 80, 0.002],
+        [2.5, 0x44ff44, 110, 0.0015],
+        [3.0, 0x4444ff, 140, 0.0012],
+        [2.2, 0xff8844, 170, 0.001],
+        [1.8, 0xaa44ff, 200, 0.0008],
+        [2.7, 0xffff44, 230, 0.0007],
+        [3.5, 0x44ffff, 260, 0.0006],
+        [2.4, 0xff44ff, 290, 0.0005],
+      ].forEach((p) => planets.push(createPlanet(...p)));
+      planets.forEach((p) => scene.add(p));
+
+      // Random planet generator
+      function createRandomPlanet() {
+        const size = Math.random() * 5 + 0.5;
+        const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+
+        const planet = new THREE.Mesh(
+          new THREE.SphereGeometry(size, 32, 32),
+          new THREE.MeshPhongMaterial({
+            color: color,
+            shininess: 100,
+          })
+        );
+
+        const radius = Math.random() * 600 + 200;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(Math.random() * 2 - 1);
+
+        planet.position.setFromSphericalCoords(radius, phi, theta);
+
+        if (Math.random() > 0.6) {
+          const ringWidth = size * (0.2 + Math.random() * 0.8);
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(
+              size * 1.2,
+              size * (1.2 + Math.random() * 0.5),
+              64
+            ),
+            new THREE.MeshPhongMaterial({
+              color: new THREE.Color().setHSL(Math.random(), 0.5, 0.7),
+              side: THREE.DoubleSide,
+            })
+          );
+          ring.rotation.x = Math.random() * Math.PI;
+          planet.add(ring);
+        }
+
+        planet.rotationSpeed = {
+          x: (Math.random() - 0.5) * 0.03,
+          y: (Math.random() - 0.5) * 0.03,
+          z: (Math.random() - 0.5) * 0.03,
+        };
+
+        return planet;
+      }
+
+      // Create random planets
+      const randomPlanets = [];
+      for (let i = 0; i < 30; i++) {
+        const planet = createRandomPlanet();
+        randomPlanets.push(planet);
+        scene.add(planet);
+      }
+
+      // Lighting
+      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      mainLight.position.set(20, 20, 20);
+      scene.add(mainLight);
+
+      // Camera controls
+      camera.position.set(0, 150, 250);
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.03;
+
+      // Button positioning
+      const updateButton = () => {
+        const screenPos = portalPosition.clone().project(camera);
+        const button = document.getElementById("portalButton");
+        button.style.left = `${
+          (screenPos.x * 0.5 + 0.5) * window.innerWidth
+        }px`;
+        button.style.top = `${
+          (screenPos.y * -0.5 + 0.5) * window.innerHeight
+        }px`;
+        const scale = Math.min(
+          1.2,
+          100 / camera.position.distanceTo(portalPosition)
+        );
+        button.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        button.style.opacity = Math.min(
+          0.9,
+          100 / camera.position.distanceTo(portalPosition)
+        );
+      };
+
+      // Animation loop
+      let time = 0;
+      let clock = new THREE.Clock();
+      function animate() {
+        const delta = clock.getDelta();
+        requestAnimationFrame(animate);
+        time += delta;
+
+        // Update systems
+        updateShootingStars(delta);
+        updateStarTwinkle();
+
+        // Update portal layers
+        portalLayers.forEach((layer, i) => {
+          layer.material.uniforms.time.value = time;
+          layer.rotation.z += i % 2 ? -0.006 : 0.006;
+        });
+
+        // Update particles
+        const positions = particles.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          const dx = -positions[i],
+            dy = -positions[i + 1],
+            dz = -positions[i + 2];
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          [i, i + 1, i + 2].forEach(
+            (j) => (positions[j] += [dx, dy, dz][j % 3] * 0.02)
+          );
+          if (dist < 2)
+            for (let j = i; j < i + 3; j++)
+              positions[j] = (Math.random() - 0.5) * 20;
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+
+        // Update orbiting planets
+        planets.forEach((planet) => {
+          planet.angle += planet.speed;
+          planet.position.x = Math.cos(planet.angle) * planet.distance;
+          planet.position.z = Math.sin(planet.angle) * planet.distance;
+          planet.rotation.y += 0.008;
+          planet.children[0]?.rotateY(0.015);
+        });
+
+        // Update random planets
+        randomPlanets.forEach((planet) => {
+          planet.rotation.x += planet.rotationSpeed.x;
+          planet.rotation.y += planet.rotationSpeed.y;
+          planet.rotation.z += planet.rotationSpeed.z;
+        });
+
+        updateButton();
+        renderer.render(scene, camera);
+        controls.update();
+      }
+      animate();
+
+      function handleButtonClick() {
+        const btn = document.getElementById("portalButton");
+        btn.style.background = "#ff00ff";
+        btn.style.boxShadow = "0 0 15px #ff00ff";
+
+        setTimeout(() => {
+          btn.style.background = "#00ffff";
+          btn.style.boxShadow = "0 0 10px rgba(0, 255, 255, 0.5)";
+          window.location.href = "main.html";
+        }, 300);
+      }
+
+      function showHelp() {
+        alert(
+          "Cosmic Portal Guide:\n\n" +
+            "🌟 Click the central cyan portal to travel\n" +
+            "🖱️ Left-click & drag to rotate view\n" +
+            "🖱️ Right-click & drag to pan\n" +
+            "🖱️ Scroll to zoom in/out\n" +
+            "🌌 Watch for shooting stars\n" +
+            "✨ Realistic star twinkling effect\n" +
+            "🔭 Explore various celestial bodies\n" +
+            "🔄 Reload page to reset view"
+        );
+      }
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
